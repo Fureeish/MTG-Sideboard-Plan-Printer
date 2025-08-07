@@ -22,7 +22,7 @@ object Sideboard {
 
     private fun loadPlanUsingReader(reader: BufferedReader) {
         val matchupMatrix = reader.useLines { line ->
-            line.map { row -> row.split(';') }.toMutableList()
+            line.map { row -> row.split('\t') }.toMutableList()
         }
             .takeWhile { row -> row.first() != "Play/draw diff:" }
             .toMutableList()
