@@ -1,5 +1,5 @@
 plugins {
-    kotlin("jvm") version "2.2.0"
+    alias(libs.plugins.kotlin.jvm)
 }
 
 group = "fureeish"
@@ -10,12 +10,15 @@ repositories {
 }
 
 dependencies {
+    implementation(libs.dotenv)
+
     testImplementation(kotlin("test"))
 }
 
 tasks.test {
     useJUnitPlatform()
 }
+
 kotlin {
     jvmToolchain(18)
 }
