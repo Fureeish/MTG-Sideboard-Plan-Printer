@@ -1,7 +1,6 @@
-.gradle
-build/
-gradle/wrapper
-.idea
+*.iml
 .kotlin
-
+.gradle
+.idea
+gradle/wrapper
 .env
