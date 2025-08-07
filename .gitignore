@@ -1,0 +1,7 @@
+.gradle
+build/
+gradle/wrapper
+.idea
+.kotlin
+
+.env
