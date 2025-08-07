@@ -1,0 +1,10 @@
+[versions]
+kotlin = "2.0.20"
+dotenv-version = "6.5.1"
+
+[libraries]
+# Env
+dotenv = { module = "io.github.cdimascio:dotenv-kotlin", version.ref = "dotenv-version" }
+
+[plugins]
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
