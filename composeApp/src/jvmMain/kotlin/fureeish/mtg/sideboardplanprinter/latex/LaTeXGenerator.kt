@@ -1,3 +1,7 @@
+package fureeish.mtg.sideboardplanprinter.latex
+
+import fureeish.mtg.sideboardplanprinter.mtg.Card
+
 object LaTeXGenerator {
     private val preamble = """
         \documentclass[9pt]{extarticle}
@@ -88,5 +92,4 @@ object LaTeXGenerator {
     enum class Options {
         WithInOut, AlignToCenter, AlignToLeft
     }
-
 }

@@ -1,3 +1,5 @@
+package fureeish.mtg.sideboardplanprinter.mtg
+
 import java.io.BufferedReader
 import java.io.File
 
