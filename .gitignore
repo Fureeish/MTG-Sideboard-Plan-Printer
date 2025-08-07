@@ -1,6 +1,19 @@
+# IntelliJ
+.idea
 *.iml
+
+# Configs
 .kotlin
 .gradle
-.idea
+
+# Gradle JARs
 gradle/wrapper
+
+# Desktop build
+composeApp/build
+
+# Main build
+build
+
+# env
 .env
