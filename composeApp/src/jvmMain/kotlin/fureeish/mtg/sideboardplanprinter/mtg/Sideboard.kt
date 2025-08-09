@@ -22,17 +22,18 @@ object Sideboard {
         )
     }
 
-    private fun loadPlanUsingReader(reader: BufferedReader) {
-        val matchupMatrix = reader.useLines { line ->
-            line.map { row -> row.split('\t') }.toMutableList()
-        }
+    fun loadPlanUsingReader(reader: BufferedReader) {
+        val matchupMatrix = reader
+            .useLines { line ->
+                line.map { row -> row.split('\t') }.toMutableList()
+            }
             .takeWhile { row -> row.first() != "Play/draw diff:" }
             .toMutableList()
 
         loadPlanFromMatchupMatrix(matchupMatrix)
     }
 
-    private fun loadPlanFromMatchupMatrix(matchupMatrix: MutableList<List<String>>) {
+    fun loadPlanFromMatchupMatrix(matchupMatrix: List<List<String>>) {
         val (maindeckCardIndexes, sideboardCardIndexes) = getCardIndexesFrom(matchupMatrix)
 
         val columnIndexOfFirstMatchup = 2
@@ -69,7 +70,7 @@ object Sideboard {
         fun alterCount(count: Int) = if (this == Maindeck) -count else count
     }
 
-    private fun getCardIndexesFrom(matchupMatrix: MutableList<List<String>>): CardIndexes {
+    private fun getCardIndexesFrom(matchupMatrix: List<List<String>>): CardIndexes {
         val allIndexedCards = matchupMatrix
             .mapIndexed { index, cardName -> index to cardName.first() }
 
