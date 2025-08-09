@@ -4,13 +4,19 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import fureeish.mtg.sideboardplanprinter.latex.LaTeXGenerator
 import fureeish.mtg.sideboardplanprinter.mtg.SideboardPlan
+import fureeish.mtg.sideboardplanprinter.ui.ToastHostState
 import io.github.cdimascio.dotenv.Dotenv
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
 import java.awt.FileDialog
 import java.awt.Frame
 import java.io.File
 
-class MainScreenViewModel(private val dotenv: Dotenv) : ViewModel() {
+class MainScreenViewModel(private val dotenv: Dotenv, private val toastHostState: ToastHostState) : ViewModel() {
+    val outputFileName = "Sideboard"
+
     val chosenSideboardPlanFile = MutableStateFlow<File?>(null)
 
     val sideboardPlanFileContents: StateFlow<List<List<String>>?> = chosenSideboardPlanFile
@@ -36,31 +42,66 @@ class MainScreenViewModel(private val dotenv: Dotenv) : ViewModel() {
         chosenSideboardPlanFile.value = dialog.files.firstOrNull()
     }
 
+    fun showToast(message: String, durationMillis: Int = 2000) {
+        toastHostState.let { state ->
+            CoroutineScope(Dispatchers.Main).launch {
+                state.showToast(message, durationMillis)
+            }
+        }
+    }
+
     fun printSideboardPlanToPDF() {
-        val lualatexExe = "lualatex.exe"
-        val exePath = if (dotenv.get("DEV_RUN").toBoolean()) {
-            File("binaries/$lualatexExe")
-        } else {
-            File(System.getProperty("compose.application.resources.dir"), lualatexExe)
+        if (chosenSideboardPlanFile.value == null) {
+            showToast("File with sideboard plan not chosen!")
+            return
         }
 
-        val dir = chosenSideboardPlanFile.value?.parentFile
+        val workingDirectory = chosenSideboardPlanFile.value?.parentFile ?: error("Cannot access chosen file's directory.")
+        val filesThatWereThereBeforeWeMadeMess = workingDirectory.listFiles()
 
-        val latexFile = File("${dir?.absolutePath}/main.tex")
+        val latexFile = File("${workingDirectory.absolutePath}/$outputFileName.tex")
         latexFile.createNewFile()
 
         val plan = SideboardPlan.fromMatchupMatrix(sideboardPlanFileContents.value!!)
         val sideboardAsLaTeX = LaTeXGenerator.generateLaTeXFrom(plan.matchupPlans, 4)
         latexFile.writeText(sideboardAsLaTeX)
 
-        ProcessBuilder(
-            exePath.absolutePath,
-            "-file-line-error",
-            "-interaction=nonstopmode",
-            "-synctex=1",
-            "-output-format=pdf",
-            "-output-directory=${chosenSideboardPlanFile.value?.parentFile?.absolutePath}",
-            latexFile.absolutePath
-        ).start()
+        CoroutineScope(Dispatchers.IO).launch {
+            val process = ProcessBuilder(
+                locateLuaLaTeXExecutable().absolutePath,
+                "-file-line-error",
+                "-interaction=nonstopmode",
+                "-synctex=1",
+                "-output-format=pdf",
+                "-output-directory=${workingDirectory.absolutePath}",
+                latexFile.absolutePath
+            ).start()
+
+            process.waitFor()
+
+            removeAllAuxiliaryFiles(workingDirectory, filesThatWereThereBeforeWeMadeMess)
+        }
+    }
+
+    private fun locateLuaLaTeXExecutable(): File {
+        val lualatexExe = "lualatex.exe"
+        val exePath = if (dotenv.get("DEV_RUN").toBoolean()) {
+            File("binaries/$lualatexExe")
+        } else {
+            File(System.getProperty("compose.application.resources.dir"), lualatexExe)
+        }
+        return exePath
+    }
+
+    private fun removeAllAuxiliaryFiles(
+        workingDirectory: File,
+        filesThatWereThereBeforeWeMadeMess: Array<File>
+    ) {
+        val filesToRetain = (filesThatWereThereBeforeWeMadeMess + File("${workingDirectory.absolutePath}/$outputFileName.pdf")).map(File::getCanonicalFile)
+        workingDirectory
+            .walk()
+            .maxDepth(1)
+            .filter { it !in filesToRetain }
+            .forEach { it.delete() }
     }
 }
