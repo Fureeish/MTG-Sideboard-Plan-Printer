@@ -131,14 +131,25 @@ fun SideboardPlanGrid(
             }
         }
 
+        val scrollbarStyle = ScrollbarStyle(
+            minimalHeight = 16.dp,
+            thickness = 12.dp,
+            shape = MaterialTheme.shapes.small,
+            hoverDurationMillis = 300,
+            unhoverColor = Color.DarkGray.copy(alpha = 0.5f),
+            hoverColor = Color.Gray
+        )
+
         VerticalScrollbar(
             adapter = rememberScrollbarAdapter(verticalScrollState),
-            modifier = Modifier.align(Alignment.CenterEnd)
+            modifier = Modifier.align(Alignment.CenterEnd),
+            style = scrollbarStyle
         )
 
         HorizontalScrollbar(
             adapter = rememberScrollbarAdapter(horizontalScrollState),
-            modifier = Modifier.align(Alignment.BottomCenter)
+            modifier = Modifier.align(Alignment.BottomCenter),
+            style = scrollbarStyle
         )
     }
 }
