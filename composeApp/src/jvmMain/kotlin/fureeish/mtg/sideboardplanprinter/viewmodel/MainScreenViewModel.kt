@@ -2,16 +2,13 @@ package fureeish.mtg.sideboardplanprinter.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.stateIn
+import io.github.cdimascio.dotenv.Dotenv
+import kotlinx.coroutines.flow.*
 import java.awt.FileDialog
 import java.awt.Frame
 import java.io.File
 
-class MainScreenViewModel() : ViewModel() {
+class MainScreenViewModel(private val dotenv: Dotenv) : ViewModel() {
     val chosenSideboardPlanFile = MutableStateFlow<File?>(null)
 
     val sideboardPlanFileContents: StateFlow<List<List<String>>?> = chosenSideboardPlanFile
@@ -38,6 +35,14 @@ class MainScreenViewModel() : ViewModel() {
     }
 
     fun printSideboardPlanToPDF() {
-        println("Print sideboard plan to PDF")
+        val lualatexExe = "lualatex.exe"
+        val exePath = if (dotenv.get("DEV_RUN").toBoolean()) {
+            File("binaries/$lualatexExe")
+        } else {
+            File(System.getProperty("compose.application.resources.dir"), lualatexExe)
+        }
+
+        val process = ProcessBuilder(exePath.absolutePath, "--help").start()
+        process.inputReader().readLines().forEach(::println)
     }
 }
