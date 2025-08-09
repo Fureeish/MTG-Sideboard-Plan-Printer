@@ -7,6 +7,7 @@ kotlin = "2.2.0"
 kotlinx-coroutines = "1.10.2"
 kodein = "7.23.0"
 compose-navigation = "2.9.0-beta04"
+dotenv-version = "6.5.1"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
@@ -17,6 +18,9 @@ androidx-lifecycle-runtimeCompose = { module = "org.jetbrains.androidx.lifecycle
 kotlinx-coroutinesSwing = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-swing", version.ref = "kotlinx-coroutines" }
 kodein-di = { module = "org.kodein.di:kodein-di-framework-compose", version.ref = "kodein" }
 compose-navigation = { module = "org.jetbrains.androidx.navigation:navigation-compose", version.ref = "compose-navigation" }
+
+# Env
+dotenv = { module = "io.github.cdimascio:dotenv-kotlin", version.ref = "dotenv-version" }
 
 [plugins]
 composeHotReload = { id = "org.jetbrains.compose.hot-reload", version.ref = "composeHotReload" }

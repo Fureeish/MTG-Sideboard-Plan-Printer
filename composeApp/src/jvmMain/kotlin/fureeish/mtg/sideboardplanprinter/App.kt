@@ -21,18 +21,22 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import fureeish.mtg.sideboardplanprinter.viewmodel.MainScreenViewModel
+import io.github.cdimascio.dotenv.dotenv
 import mtg_sideboard_plan_printer.composeapp.generated.resources.JetBrainsMono_Regular
 import mtg_sideboard_plan_printer.composeapp.generated.resources.Res
 import org.jetbrains.compose.resources.Font
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.kodein.di.DI
 import org.kodein.di.bindProvider
+import org.kodein.di.bindSingleton
 import org.kodein.di.compose.viewmodel.rememberViewModel
 import org.kodein.di.compose.withDI
+import org.kodein.di.instance
 import kotlin.math.ceil
 
 val di = DI {
-    bindProvider<MainScreenViewModel> { MainScreenViewModel() }
+    bindSingleton { dotenv() }
+    bindProvider { MainScreenViewModel(instance()) }
 }
 
 @Composable

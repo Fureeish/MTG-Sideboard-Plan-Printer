@@ -22,6 +22,7 @@ kotlin {
             implementation(libs.androidx.lifecycle.runtimeCompose)
             implementation(libs.kodein.di)
             implementation(libs.compose.navigation)
+            implementation(libs.dotenv)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
@@ -39,9 +40,11 @@ compose.desktop {
         mainClass = "fureeish.mtg.sideboardplanprinter.MainKt"
 
         nativeDistributions {
-            targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
+            targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb, TargetFormat.Exe)
             packageName = "fureeish.mtg.sideboardplanprinter"
             packageVersion = "1.0.0"
+
+            appResourcesRootDir.set(project.layout.projectDirectory.dir("binaries"))
         }
     }
 }
