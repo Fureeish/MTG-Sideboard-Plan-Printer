@@ -21,6 +21,8 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import fureeish.mtg.sideboardplanprinter.viewmodel.MainScreenViewModel
+import io.github.aakira.napier.DebugAntilog
+import io.github.aakira.napier.Napier
 import io.github.cdimascio.dotenv.dotenv
 import mtg_sideboard_plan_printer.composeapp.generated.resources.JetBrainsMono_Regular
 import mtg_sideboard_plan_printer.composeapp.generated.resources.Res
@@ -42,6 +44,8 @@ val di = DI {
 @Composable
 @Preview
 fun App() = withDI(di) {
+    Napier.base(DebugAntilog())
+
     MaterialTheme {
         val viewModel by rememberViewModel<MainScreenViewModel>()
 

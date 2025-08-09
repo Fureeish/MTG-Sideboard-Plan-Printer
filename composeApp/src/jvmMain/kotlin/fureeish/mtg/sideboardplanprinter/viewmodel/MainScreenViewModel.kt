@@ -2,6 +2,8 @@ package fureeish.mtg.sideboardplanprinter.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import fureeish.mtg.sideboardplanprinter.latex.LaTeXGenerator
+import fureeish.mtg.sideboardplanprinter.mtg.SideboardPlan
 import io.github.cdimascio.dotenv.Dotenv
 import kotlinx.coroutines.flow.*
 import java.awt.FileDialog
@@ -42,7 +44,23 @@ class MainScreenViewModel(private val dotenv: Dotenv) : ViewModel() {
             File(System.getProperty("compose.application.resources.dir"), lualatexExe)
         }
 
-        val process = ProcessBuilder(exePath.absolutePath, "--help").start()
-        process.inputReader().readLines().forEach(::println)
+        val dir = chosenSideboardPlanFile.value?.parentFile
+
+        val latexFile = File("${dir?.absolutePath}/main.tex")
+        latexFile.createNewFile()
+
+        val plan = SideboardPlan.fromMatchupMatrix(sideboardPlanFileContents.value!!)
+        val sideboardAsLaTeX = LaTeXGenerator.generateLaTeXFrom(plan.matchupPlans, 4)
+        latexFile.writeText(sideboardAsLaTeX)
+
+        ProcessBuilder(
+            exePath.absolutePath,
+            "-file-line-error",
+            "-interaction=nonstopmode",
+            "-synctex=1",
+            "-output-format=pdf",
+            "-output-directory=${chosenSideboardPlanFile.value?.parentFile?.absolutePath}",
+            latexFile.absolutePath
+        ).start()
     }
 }

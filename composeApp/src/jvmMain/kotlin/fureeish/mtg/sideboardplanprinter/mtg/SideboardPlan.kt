@@ -1,6 +1,5 @@
 package fureeish.mtg.sideboardplanprinter.mtg
 
-import fureeish.mtg.sideboardplanprinter.SideboardPlanGrid
 import java.io.BufferedReader
 import java.io.File
 
