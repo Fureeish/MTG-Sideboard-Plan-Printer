@@ -20,6 +20,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
+import fureeish.mtg.sideboardplanprinter.ui.LocalToastHostState
+import fureeish.mtg.sideboardplanprinter.ui.ToastHost
+import fureeish.mtg.sideboardplanprinter.ui.ToastHostState
 import fureeish.mtg.sideboardplanprinter.viewmodel.MainScreenViewModel
 import io.github.aakira.napier.DebugAntilog
 import io.github.aakira.napier.Napier
@@ -31,6 +34,7 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.kodein.di.DI
 import org.kodein.di.bindProvider
 import org.kodein.di.bindSingleton
+import org.kodein.di.compose.rememberInstance
 import org.kodein.di.compose.viewmodel.rememberViewModel
 import org.kodein.di.compose.withDI
 import org.kodein.di.instance
@@ -38,12 +42,25 @@ import kotlin.math.ceil
 
 val di = DI {
     bindSingleton { dotenv() }
-    bindProvider { MainScreenViewModel(instance()) }
+    bindSingleton { ToastHostState() }
+    bindProvider { MainScreenViewModel(instance(), instance()) }
+}
+
+@Composable
+fun AppRoot(content: @Composable () -> Unit) = withDI(di) {
+    val toastHostState by rememberInstance<ToastHostState>()
+
+    CompositionLocalProvider(LocalToastHostState provides toastHostState) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            content()
+            ToastHost(state = toastHostState)
+        }
+    }
 }
 
 @Composable
 @Preview
-fun App() = withDI(di) {
+fun App() {
     Napier.base(DebugAntilog())
 
     MaterialTheme {

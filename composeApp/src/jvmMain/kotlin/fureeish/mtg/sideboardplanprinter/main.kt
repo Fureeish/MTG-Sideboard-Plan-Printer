@@ -11,6 +11,8 @@ fun main() = application {
         onCloseRequest = ::exitApplication,
         title = stringResource(Res.string.app_name),
     ) {
-        App()
+        AppRoot {
+            App()
+        }
     }
 }
