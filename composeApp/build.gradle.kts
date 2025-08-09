@@ -23,6 +23,7 @@ kotlin {
             implementation(libs.kodein.di)
             implementation(libs.compose.navigation)
             implementation(libs.dotenv)
+            implementation(libs.napier)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
