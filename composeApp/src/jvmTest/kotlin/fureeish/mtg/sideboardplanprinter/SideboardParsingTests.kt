@@ -21,4 +21,10 @@ class SideboardParsingTests : StringSpec({
 
         sideboard.toSet() shouldBe expected.toSet()
     }
+
+    "Loading a sample sideboard plan correctly extracts all matchups" {
+        val sideboardPlans = SideboardPlan.fromResource("UB Reanimator BBB - UB Reanimator v1.1.tsv").matchupPlans
+
+        sideboardPlans.size shouldBe 34
+    }
 })
