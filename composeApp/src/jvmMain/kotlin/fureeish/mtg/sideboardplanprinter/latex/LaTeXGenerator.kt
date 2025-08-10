@@ -28,21 +28,48 @@ object LaTeXGenerator {
                 get() = Config()
         }
 
-        var withInOut: Boolean = true
+        /**
+         * Fields with default configuration values.
+         */
+        var withInOutHeader: Boolean = true
         var alignment: AlignTo = AlignTo.Left
         var layout: Layout = Layout.ClassicInOut
         var order: List<Order> = listOf(Order.ByPlanSize())
 
-        sealed class AlignTo {
-            object Center : AlignTo()
-            object Left : AlignTo()
+
+        /**
+         * Types representing custom options.
+         */
+
+        /**
+         * Represents alignment of columns' text in a single matchup table.
+         */
+        enum class AlignTo {
+            Center, Left
         }
 
-        sealed class Layout {
-            object ClassicInOut : Layout()
-            object Full15 : Layout()
+        /**
+         * ClassicInOut represents a column for cards sided in and a column for cards sided out.
+         * Full15 represents a column for cards sided in and a column for cards sided out extended by cards that were
+         * fake-sided in.
+         */
+        enum class Layout {
+            ClassicInOut, Full15
         }
 
+        /**
+         * Used for determining the order of the matchup plans in the resulting PDF.
+         *
+         * Criteria can be combined to create a set of rules for comparison.
+         *
+         * Example: `listOf(ByPlanSize(ascending = false), Alphabetically())` means that the resulting PDF's sideboard
+         * plans are ordered from the greatest number of cards sided in/out to lowest (height of the sideboard plan
+         * table). In case of ties (two tables are of the same height), they are ordered alphabetically with respect to
+         * matchup name.
+         *
+         * Some criteria are exclusive, e.g., you can't sort twice by `ByFileOrdering(ascending = false)`
+         * (or `ascending = true`), and if you specify `ByFileOccurrence`, you cannot specify any other criteria.
+         */
         sealed class Order(open val ascending: Boolean = true) {
             data class ByFileOccurrence(override val ascending: Boolean = true) : Order(ascending)
             data class Alphabetically(override val ascending: Boolean = true) : Order(ascending)
@@ -75,18 +102,20 @@ object LaTeXGenerator {
         """.trimIndent()
     }
 
+    typealias MatchupPlan = Pair<String, List<Pair<String, String>>>
+
     private fun withAlteredOrdering(
-        matchupPlans: List<Pair<String, List<Pair<String, String>>>>,
+        matchupPlans: List<MatchupPlan>,
         config: Config
-    ): List<Pair<String, List<Pair<String, String>>>> {
+    ): List<MatchupPlan> {
         val mutablePlans = matchupPlans.toMutableList()
 
-        val comparators: List<Comparator<Pair<String, List<Pair<String, String>>>>> = config.order
+        val comparators: List<Comparator<MatchupPlan>> = config.order
             .map {
                 when (it) {
-                    is Config.Order.Alphabetically -> Comparator.comparing { (name, _): Pair<String, List<Pair<String, String>>> -> name } to it
-                    is Config.Order.ByPlanSize -> Comparator.comparing { (_, plan): Pair<String, List<Pair<String, String>>> -> plan.size } to it
-                    is Config.Order.ByFileOccurrence -> Comparator.comparing { _: Pair<String, List<Pair<String, String>>> -> 0 } to it
+                    is Alphabetically -> Comparator.comparing { (name, _): MatchupPlan -> name } to it
+                    is ByPlanSize -> Comparator.comparing { (_, plan): MatchupPlan -> plan.size } to it
+                    is ByFileOccurrence -> Comparator.comparing { _: MatchupPlan -> 0 } to it
                 }
             }.map { (comp, order) ->
                 comp.takeIf { order.ascending } ?: comp.reversed()
@@ -100,7 +129,7 @@ object LaTeXGenerator {
     private fun getMatchupPlans(
         sideboardPlan: SideboardPlan,
         config: Config
-    ): List<Pair<String, List<Pair<String, String>>>> {
+    ): List<MatchupPlan> {
         return sideboardPlan.matchupPlans
             .map { (matchup, sideboardForMatchup) ->
                 var (cardsToAdd, cardsToRemove) = sideboardForMatchup.partition { it.count > 0 }
@@ -130,7 +159,7 @@ object LaTeXGenerator {
     }
 
     private fun produceLaTeXRepresentation(
-        matchupPlans: List<Pair<String, List<Pair<String, String>>>>,
+        matchupPlans: List<MatchupPlan>,
         columns: Int,
         config: Config
     ): String {
@@ -160,7 +189,7 @@ object LaTeXGenerator {
 
                             append("\\begin{tabular}{@{}>{$leftColumnAlignment\\arraybackslash}p{0.45\\linewidth}|>{\\raggedright\\arraybackslash}p{0.45\\linewidth}@{}}")
 
-                            if (config.withInOut) {
+                            if (config.withInOutHeader) {
                                 append("\\hfill\\textbf{\\textsc{in}} & \\textbf{\\textsc{out}} \\\\\n")
                             }
 
