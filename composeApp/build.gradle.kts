@@ -27,6 +27,11 @@ kotlin {
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
+            implementation(libs.kotest.assertions.core)
+        }
+        jvmTest.dependencies {
+            implementation(libs.kotest.framework.engine)
+            implementation(libs.kotest.runner.junit5)
         }
         jvmMain.dependencies {
             implementation(compose.desktop.currentOs)
@@ -35,6 +40,9 @@ kotlin {
     }
 }
 
+tasks.withType<Test> {
+    useJUnitPlatform()
+}
 
 compose.desktop {
     application {
