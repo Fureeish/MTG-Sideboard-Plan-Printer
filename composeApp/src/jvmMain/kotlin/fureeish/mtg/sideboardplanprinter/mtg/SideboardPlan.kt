@@ -5,7 +5,8 @@ import java.io.File
 
 class SideboardPlan
 private constructor(
-    private var _matchupPlans: MutableMap<String, List<Card>> = mutableMapOf()
+    private var _matchupPlans: MutableMap<String, List<Card>> = mutableMapOf(),
+    val sideboard: List<Card>
 ) {
     companion object {
         fun fromFile(path: String) = fromFile(File(path))
@@ -13,7 +14,7 @@ private constructor(
         fun fromFile(file: File) = fromReader(file.bufferedReader())
 
         fun fromResource(resourceName: String) = fromReader(
-            object {}.javaClass.getResourceAsStream(resourceName)?.bufferedReader()!!
+            object {}.javaClass.getResourceAsStream("/$resourceName")?.bufferedReader()!!
         )
 
         fun fromReader(reader: BufferedReader): SideboardPlan {
@@ -38,7 +39,15 @@ private constructor(
                 .first()
                 .first - 1
 
-            return SideboardPlan().apply {
+            val sideboard = matchupMatrix
+                .mapIndexed { index, cardRow ->
+                    index to cardRow
+                }
+                .filter { (index, _) -> index in sideboardCardIndexes }
+                .map { (_, row) -> Card(row[1].trim().toInt(), row[0].trim())  }
+
+            return SideboardPlan(sideboard = sideboard).apply {
+
                 (columnIndexOfFirstMatchup..columnIndexOfLastMatchup).map { matchupIndex ->
                     val matchup = matchupMatrix[0][matchupIndex].trim()
 
