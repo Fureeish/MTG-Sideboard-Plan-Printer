@@ -63,7 +63,9 @@ class MainScreenViewModel(private val dotenv: Dotenv, private val toastHostState
         latexFile.createNewFile()
 
         val plan = SideboardPlan.fromMatchupMatrix(sideboardPlanFileContents.value!!)
-        val sideboardAsLaTeX = LaTeXGenerator.generateLaTeXFrom(plan.matchupPlans, 4)
+        val sideboardAsLaTeX = LaTeXGenerator.generateLaTeXFrom(plan, columns = 4, LaTeXGenerator.Config {
+//            layout = LaTeXGenerator.Config.Layout.Full15
+        })
         latexFile.writeText(sideboardAsLaTeX)
 
         CoroutineScope(Dispatchers.IO).launch {
