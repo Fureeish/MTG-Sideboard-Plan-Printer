@@ -17,7 +17,7 @@ import java.io.File
 class MainScreenViewModel(private val dotenv: Dotenv, private val toastHostState: ToastHostState) : ViewModel() {
     val outputFileName = "Sideboard"
 
-    val chosenSideboardPlanFile = MutableStateFlow<File?>(null)
+    private val chosenSideboardPlanFile = MutableStateFlow<File?>(null)
 
     val sideboardPlanFileContents: StateFlow<List<List<String>>?> = chosenSideboardPlanFile
         .map { file ->
@@ -35,6 +35,14 @@ class MainScreenViewModel(private val dotenv: Dotenv, private val toastHostState
             started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5000),
             initialValue = emptyList()
         )
+
+    private val _withInOutHeader = MutableStateFlow(LaTeXGenerator.Config.default.withInOutHeader)
+    private val _alignment = MutableStateFlow(LaTeXGenerator.Config.default.alignment)
+    private val _layout = MutableStateFlow(LaTeXGenerator.Config.default.layout)
+
+    val withInOutHeader: StateFlow<Boolean> = _withInOutHeader
+    val alignment: StateFlow<LaTeXGenerator.Config.AlignTo> = _alignment
+    val layout: StateFlow<LaTeXGenerator.Config.Layout> = _layout
 
     fun chooseSideboardPlanFromFile() {
         val dialog = FileDialog(null as Frame?, "Select a file", FileDialog.LOAD)
@@ -56,7 +64,8 @@ class MainScreenViewModel(private val dotenv: Dotenv, private val toastHostState
             return
         }
 
-        val workingDirectory = chosenSideboardPlanFile.value?.parentFile ?: error("Cannot access chosen file's directory.")
+        val workingDirectory =
+            chosenSideboardPlanFile.value?.parentFile ?: error("Cannot access chosen file's directory.")
         val filesThatWereThereBeforeWeMadeMess = workingDirectory.listFiles()
 
         val latexFile = File("${workingDirectory.absolutePath}/$outputFileName.tex")
@@ -64,7 +73,11 @@ class MainScreenViewModel(private val dotenv: Dotenv, private val toastHostState
 
         val plan = SideboardPlan.fromMatchupMatrix(sideboardPlanFileContents.value!!)
         val sideboardAsLaTeX = LaTeXGenerator.generateLaTeXFrom(plan, columns = 4, LaTeXGenerator.Config {
-//            layout = LaTeXGenerator.Config.Layout.Full15
+            withInOutHeader = _withInOutHeader.value
+            withInOutHeader = _withInOutHeader.value
+            alignment = _alignment.value
+            layout = _layout.value
+            order = listOf(LaTeXGenerator.Config.Order.ByPlanSize(ascending = false))
         })
         latexFile.writeText(sideboardAsLaTeX)
 
@@ -99,11 +112,25 @@ class MainScreenViewModel(private val dotenv: Dotenv, private val toastHostState
         workingDirectory: File,
         filesThatWereThereBeforeWeMadeMess: Array<File>
     ) {
-        val filesToRetain = (filesThatWereThereBeforeWeMadeMess + File("${workingDirectory.absolutePath}/$outputFileName.pdf")).map(File::getCanonicalFile)
+        val filesToRetain =
+            (filesThatWereThereBeforeWeMadeMess + File("${workingDirectory.absolutePath}/$outputFileName.pdf"))
+                .map(File::getCanonicalFile)
         workingDirectory
             .walk()
             .maxDepth(1)
             .filter { it !in filesToRetain }
             .forEach { it.delete() }
+    }
+
+    fun setWithInOutHeader(newValue: Boolean) {
+        _withInOutHeader.value = newValue
+    }
+
+    fun setAlignment(newValue: LaTeXGenerator.Config.AlignTo) {
+        _alignment.value = newValue
+    }
+
+    fun setLayout(newValue: LaTeXGenerator.Config.Layout) {
+        _layout.value = newValue
     }
 }

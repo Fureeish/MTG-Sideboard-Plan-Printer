@@ -2,14 +2,10 @@ package fureeish.mtg.sideboardplanprinter
 
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.Button
-import androidx.compose.material3.LocalTextStyle
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.remember
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -20,6 +16,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
+import fureeish.mtg.sideboardplanprinter.latex.LaTeXGenerator.Config.AlignTo
+import fureeish.mtg.sideboardplanprinter.latex.LaTeXGenerator.Config.Layout
 import fureeish.mtg.sideboardplanprinter.ui.LocalToastHostState
 import fureeish.mtg.sideboardplanprinter.ui.ToastHost
 import fureeish.mtg.sideboardplanprinter.ui.ToastHostState
@@ -66,29 +64,118 @@ fun App() {
     MaterialTheme {
         val viewModel by rememberViewModel<MainScreenViewModel>()
 
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally
+        Row(
+            modifier = Modifier.fillMaxSize()
         ) {
-            Button(onClick = viewModel::chooseSideboardPlanFromFile) {
-                Text("Choose sideboard plan from file")
-            }
+            ConfigPanel(viewModel)
+            ActionsPanel(viewModel)
+        }
+    }
+}
 
-            Button(onClick = viewModel::printSideboardPlanToPDF) {
-                Text("Print sideboard plan to PDF")
-            }
+@Composable
+private fun ConfigPanel(viewModel: MainScreenViewModel) {
+    var alignmentMenuExpanded by remember { mutableStateOf(false) }
+    var layoutMenuExpanded by remember { mutableStateOf(false) }
 
-            val jetBrainsMonoRegular = FontFamily(
-                Font(Res.font.JetBrainsMono_Regular, weight = FontWeight.Normal)
+    Column(
+        modifier = Modifier
+            .fillMaxHeight()
+            .fillMaxWidth(0.25f)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text("With In/Out header")
+            val withInOutHeader by viewModel.withInOutHeader.collectAsState()
+            Checkbox(
+                checked = withInOutHeader,
+                onCheckedChange = { viewModel.setWithInOutHeader(it) }
             )
+        }
 
-            CompositionLocalProvider(
-                LocalTextStyle provides LocalTextStyle.current.copy(
-                    fontFamily = jetBrainsMonoRegular
-                )
-            ) {
-                SideboardPlanGrid(viewModel.sideboardPlanFileContents.collectAsState().value)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text("Alignment")
+            Box {
+                IconButton(onClick = { alignmentMenuExpanded = !alignmentMenuExpanded }) {
+                    Icon(Icons.Default.ArrowDropDown, contentDescription = "drop down")
+                }
+                DropdownMenu(
+                    expanded = alignmentMenuExpanded,
+                    onDismissRequest = { alignmentMenuExpanded = false }
+                ) {
+                    AlignTo.entries.forEach { alignmentChoice ->
+                        DropdownMenuItem(
+                            text = { Text(alignmentChoice.name) },
+                            onClick = {
+                                viewModel.setAlignment(alignmentChoice)
+                                alignmentMenuExpanded = false
+                            }
+                        )
+                    }
+                }
             }
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text("Layout")
+            Box {
+                IconButton(onClick = { layoutMenuExpanded = !layoutMenuExpanded }) {
+                    Icon(Icons.Default.ArrowDropDown, contentDescription = "drop down")
+                }
+                DropdownMenu(
+                    expanded = layoutMenuExpanded,
+                    onDismissRequest = { layoutMenuExpanded = false }
+                ) {
+                    Layout.entries.forEach { layoutChoice ->
+                        DropdownMenuItem(
+                            text = { Text(layoutChoice.name) },
+                            onClick = {
+                                viewModel.setLayout(layoutChoice)
+                                layoutMenuExpanded = false
+                            }
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ActionsPanel(viewModel: MainScreenViewModel) {
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Button(onClick = viewModel::chooseSideboardPlanFromFile) {
+            Text("Choose sideboard plan from file")
+        }
+
+        Button(onClick = viewModel::printSideboardPlanToPDF) {
+            Text("Print sideboard plan to PDF")
+        }
+
+        val jetBrainsMonoRegular = FontFamily(
+            Font(Res.font.JetBrainsMono_Regular, weight = FontWeight.Normal)
+        )
+
+        CompositionLocalProvider(
+            LocalTextStyle provides LocalTextStyle.current.copy(
+                fontFamily = jetBrainsMonoRegular
+            )
+        ) {
+            SideboardPlanGrid(viewModel.sideboardPlanFileContents.collectAsState().value)
         }
     }
 }
