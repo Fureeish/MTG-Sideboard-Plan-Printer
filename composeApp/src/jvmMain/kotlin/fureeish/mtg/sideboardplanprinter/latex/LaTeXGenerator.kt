@@ -7,7 +7,23 @@ import fureeish.mtg.sideboardplanprinter.mtg.SideboardPlan
 object LaTeXGenerator {
     class Config private constructor() {
         companion object {
-            operator fun invoke(builder: Config.() -> Unit) = Config().apply(builder)
+            operator fun invoke(builder: Config.() -> Unit) = Config().apply {
+                builder()
+
+                check(order.size == order.toSet().size) {
+                    "Order options should not contain duplicates." +
+                            "How would I sort based on a same criteria multiple times?"
+                }
+
+                val isJustByFileOccurrence = order.all { it is Order.ByFileOccurrence } && order.size == 1
+                val noByFileOccurrencePresent = order.none { it is Order.ByFileOccurrence }
+
+                check(isJustByFileOccurrence || noByFileOccurrencePresent) {
+                    "ByFileOccurrence, if present, must be the only ordering criteria," +
+                            "because any other ordering would render it meaningless."
+                }
+            }
+
             val default: Config
                 get() = Config()
         }
@@ -15,6 +31,7 @@ object LaTeXGenerator {
         var withInOut: Boolean = true
         var alignment: AlignTo = AlignTo.Left
         var layout: Layout = Layout.ClassicInOut
+        var order: List<Order> = listOf(Order.ByPlanSize())
 
         sealed class AlignTo {
             object Center : AlignTo()
@@ -24,6 +41,12 @@ object LaTeXGenerator {
         sealed class Layout {
             object ClassicInOut : Layout()
             object Full15 : Layout()
+        }
+
+        sealed class Order(open val ascending: Boolean = true) {
+            data class ByFileOccurrence(override val ascending: Boolean = true) : Order(ascending)
+            data class Alphabetically(override val ascending: Boolean = true) : Order(ascending)
+            data class ByPlanSize(override val ascending: Boolean = true) : Order(ascending)
         }
     }
 
@@ -40,13 +63,53 @@ object LaTeXGenerator {
         columns: Int,
         config: Config = Config.default
     ): String {
-        val matchupsSortedByPlanSizes = sideboardPlan.matchupPlans
+        val matchupPlans = withAlteredOrdering(getMatchupPlans(sideboardPlan, config), config)
+
+        val latexRepresentation = produceLaTeXRepresentation(matchupPlans, columns, config)
+
+        return """
+            $preamble
+            \begin{document}
+            $latexRepresentation
+            \end{document}
+        """.trimIndent()
+    }
+
+    private fun withAlteredOrdering(
+        matchupPlans: List<Pair<String, List<Pair<String, String>>>>,
+        config: Config
+    ): List<Pair<String, List<Pair<String, String>>>> {
+        val mutablePlans = matchupPlans.toMutableList()
+
+        val comparators: List<Comparator<Pair<String, List<Pair<String, String>>>>> = config.order
+            .map {
+                when (it) {
+                    is Config.Order.Alphabetically -> Comparator.comparing { (name, _): Pair<String, List<Pair<String, String>>> -> name } to it
+                    is Config.Order.ByPlanSize -> Comparator.comparing { (_, plan): Pair<String, List<Pair<String, String>>> -> plan.size } to it
+                    is Config.Order.ByFileOccurrence -> Comparator.comparing { _: Pair<String, List<Pair<String, String>>> -> 0 } to it
+                }
+            }.map { (comp, order) ->
+                comp.takeIf { order.ascending } ?: comp.reversed()
+            }
+
+        mutablePlans.sortWith(comparators.reduce { acc, comp -> acc.thenComparing(comp) })
+
+        return mutablePlans
+    }
+
+    private fun getMatchupPlans(
+        sideboardPlan: SideboardPlan,
+        config: Config
+    ): List<Pair<String, List<Pair<String, String>>>> {
+        return sideboardPlan.matchupPlans
             .map { (matchup, sideboardForMatchup) ->
                 var (cardsToAdd, cardsToRemove) = sideboardForMatchup.partition { it.count > 0 }
 
                 if (config.layout == Layout.Full15) {
                     val fakeSideboardedCards = sideboardPlan.sideboard - cardsToAdd.toSet()
                     cardsToRemove += fakeSideboardedCards.map { it.copy(count = -it.count) }
+
+                    // merge cards that are present in both sideboard and maindeck
                     cardsToRemove = cardsToRemove.groupingBy { it.cardName }
                         .reduce { _, acc, newCard -> Card(acc.count + newCard.count, acc.cardName) }
                         .values
@@ -63,22 +126,30 @@ object LaTeXGenerator {
                 }
 
                 matchup to inOutPlan
-            }.sortedByDescending { (_, inoutPlan) ->
-                inoutPlan.size
             }
+    }
 
-        val latexRepresentation = matchupsSortedByPlanSizes
+    private fun produceLaTeXRepresentation(
+        matchupPlans: List<Pair<String, List<Pair<String, String>>>>,
+        columns: Int,
+        config: Config
+    ): String {
+        val rowSeparator = "\n\\vspace{1em}\n\n\\noindent\n"
+
+        return matchupPlans
             .chunked(columns)
             .joinToString(
                 prefix = "\\noindent\n",
-                separator = "\n\\vspace{1em}\n\n\\noindent\n"
+                separator = rowSeparator
             ) { matchupsRow ->
+                val columnSeparator = "\\hfill\n"
+
                 matchupsRow
-                    .joinToString(separator = "\\hfill\n") { (matchup, sideboardForMatchup) ->
-                        val singlePlanWidth = String.format("%.3f", 1.0 / columns / 1.05)
+                    .joinToString(separator = columnSeparator) { (matchup, sideboardForMatchup) ->
+                        val singlePlanTableWidth = String.format("%.3f", 1.0 / (1.05 * columns))
 
                         buildString {
-                            append("\\begin{minipage}[t]{$singlePlanWidth\\textwidth}\n")
+                            append("\\begin{minipage}[t]{$singlePlanTableWidth\\textwidth}\n")
                             append("\\centering\n")
                             append("\\textbf{\\textsc{$matchup}}\\vphantom{Jy} \\\\\n")
 
@@ -104,13 +175,6 @@ object LaTeXGenerator {
                         }
                     }
             }
-
-        return """
-            $preamble
-            \begin{document}
-            $latexRepresentation
-            \end{document}
-        """.trimIndent()
     }
 
     private fun <T, U> zipWithPadding(
